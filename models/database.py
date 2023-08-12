@@ -15,6 +15,9 @@ class DynamicDatabase:
         self.db_type = os.environ.get("DATABASE_TYPE").lower()
         self.use_mock_data = os.environ.get("USE_MOCK_DATA", "True").lower() == "true"
 
+    def set_mock_data(self, value):
+        self.use_mock_data = value
+
     def connect(self):
         """Establish a connection to the specified database using environment variables."""
         if self.connection:
@@ -106,6 +109,7 @@ class DynamicDatabase:
             self.connect()
 
         try:
+
             if self.use_mock_data:
                 return list(self.data.keys())
 
@@ -121,6 +125,30 @@ class DynamicDatabase:
 
         except Exception as e:
             raise ValueError(f"Error fetching table names: {str(e)}")
+
+    def get_fields(self, table_name):
+        if not self.connection:
+            self.connect()
+
+        try:
+            if self.use_mock_data:
+                if table_name in self.data:
+                    return list(self.data[table_name][0].keys())
+                return []
+
+            if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
+                # Use SQLAlchemy introspection to get column names
+                return [column.name for column in sqlalchemy.inspect(self.engine).get_columns(table_name)]
+
+            elif self.db_type == "mongodb":
+                # MongoDB doesn't have "fields" like SQL, but it has document keys.
+                # Let's fetch the first document to get its keys.
+                document = self.connection[table_name].find_one()
+                return list(document.keys()) if document else []
+            return []
+
+        except Exception as e:
+            raise ValueError(f"Error fetching fields for table {table_name}: {str(e)}")
 
     def query(self, table_name, field=None):
         try:
