@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from models.database import DynamicDatabase
-from models.lang_chain_simulator import LangChainSimulator
+from models.nlp_processor import NLPQueryProcessor
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -8,23 +8,23 @@ load_dotenv()
 
 app = Flask(__name__)
 db = DynamicDatabase()
-lang_chain = LangChainSimulator()
+nlp_processor = NLPQueryProcessor(db)
 
 
 @app.route("/ask", methods=["POST"])
 def ask():
     question = request.json.get("question")
-    table_name = request.json.get("table")
-    field = request.json.get("field")
 
-    # If the question is about database data
+    # Process the question using NLPQueryProcessor to detect table and field
+    table_name, field = nlp_processor.understand_query(question)
+
+    # If a table is detected in the question
     if table_name:
         data = db.query(table_name, field)
         return jsonify({"response": data})
 
-    # Otherwise, process with LangChainSimulator (or actual LangChain if integrated)
-    response = lang_chain.process(question)
-    return jsonify({"response": response})
+    # Otherwise, return a generic response
+    return jsonify({"response": f"Processed question: {question}"})
 
 
 if __name__ == "__main__":

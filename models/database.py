@@ -2,9 +2,6 @@ import os
 
 
 class DynamicDatabase:
-    """
-    Class to connect over multiple Database
-    """
     _instance = None  # Singleton instance
 
     def __new__(cls):
