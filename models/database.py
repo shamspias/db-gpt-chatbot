@@ -17,20 +17,22 @@ class DynamicDatabase:
 
     def connect(self):
         """Establish a connection to the specified database using environment variables."""
-        try:
-            if self.connection:
-                return  # Already connected
-            if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
-                connection_string = self._get_sql_connection_string()
-                self._import_sqlalchemy()
-                self.engine = sqlalchemy.create_engine(connection_string)
-                self.connection = self.engine.connect()
-            elif self.db_type == "mongodb":
-                self.connection = self._get_mongodb_connection()
-            else:
-                raise ValueError(f"Unsupported database type: {self.db_type}")
-        except Exception as e:
-            raise ValueError(f"Error connecting to the database: {str(e)}")
+        if self.connection:
+            return  # Already connected
+
+        if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
+            connection_string = self._get_sql_connection_string()
+            self._import_sqlalchemy()
+            self.engine = sqlalchemy.create_engine(connection_string)
+            self.connection = self.engine.connect()
+        elif self.db_type == "mongodb":
+            self.connection = self._get_mongodb_connection()
+        else:
+            raise ValueError(f"Unsupported database type: {self.db_type}")
+
+        # Check if connection was successful
+        if not self.connection:
+            raise ValueError("Failed to establish database connection.")
 
     def _get_sql_connection_string(self):
         """Generate an SQL connection string based on the database type and environment variables."""
@@ -100,17 +102,33 @@ class DynamicDatabase:
         }
 
     def get_tables(self):
-        return list(self.data.keys())
+        if not self.connection:
+            self.connect()
 
-    def get_fields(self, table_name):
-        if table_name in self.data:
-            return list(self.data[table_name][0].keys())
-        return []
+        try:
+            if self.use_mock_data:
+                return list(self.data.keys())
+
+            if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
+                # Use SQLAlchemy introspection to get table names
+                return sqlalchemy.inspect(self.engine).get_table_names()
+
+            elif self.db_type == "mongodb":
+                return self.connection.list_collection_names()
+
+            else:
+                raise ValueError(f"Unsupported database type: {self.db_type}")
+
+        except Exception as e:
+            raise ValueError(f"Error fetching table names: {str(e)}")
 
     def query(self, table_name, field=None):
-        if self.use_mock_data:
-            return self._query_mock_data(table_name, field)
-        return self._query_real_data(table_name, field)
+        try:
+            if self.use_mock_data:
+                return self._query_mock_data(table_name, field)
+            return self._query_real_data(table_name, field)
+        except Exception as e:
+            raise ValueError(f"Error querying data for table {table_name}: {str(e)}")
 
     def _query_mock_data(self, table_name, field=None):
         if table_name in self.data:
