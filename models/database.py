@@ -13,18 +13,24 @@ class DynamicDatabase:
         self.engine = None
         self.connection = None
         self.db_type = os.environ.get("DATABASE_TYPE").lower()
+        self.use_mock_data = os.environ.get("USE_MOCK_DATA", "True").lower() == "true"
 
     def connect(self):
         """Establish a connection to the specified database using environment variables."""
-        if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
-            connection_string = self._get_sql_connection_string()
-            self._import_sqlalchemy()
-            self.engine = sqlalchemy.create_engine(connection_string)
-            self.connection = self.engine.connect()
-        elif self.db_type == "mongodb":
-            self.connection = self._get_mongodb_connection()
-        else:
-            raise ValueError(f"Unsupported database type: {self.db_type}")
+        try:
+            if self.connection:
+                return  # Already connected
+            if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
+                connection_string = self._get_sql_connection_string()
+                self._import_sqlalchemy()
+                self.engine = sqlalchemy.create_engine(connection_string)
+                self.connection = self.engine.connect()
+            elif self.db_type == "mongodb":
+                self.connection = self._get_mongodb_connection()
+            else:
+                raise ValueError(f"Unsupported database type: {self.db_type}")
+        except Exception as e:
+            raise ValueError(f"Error connecting to the database: {str(e)}")
 
     def _get_sql_connection_string(self):
         """Generate an SQL connection string based on the database type and environment variables."""
@@ -102,8 +108,36 @@ class DynamicDatabase:
         return []
 
     def query(self, table_name, field=None):
+        if self.use_mock_data:
+            return self._query_mock_data(table_name, field)
+        return self._query_real_data(table_name, field)
+
+    def _query_mock_data(self, table_name, field=None):
         if table_name in self.data:
             if field:
                 return [entry[field] for entry in self.data[table_name]]
             return self.data[table_name]
         return []
+
+    def _query_real_data(self, table_name, field=None):
+        if not self.connection:
+            self.connect()
+        if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
+            return self._query_sql_data(table_name, field)
+        elif self.db_type == "mongodb":
+            return self._query_mongodb_data(table_name, field)
+        return []
+
+    def _query_sql_data(self, table_name, field=None):
+        query = f"SELECT * FROM {table_name}"
+        result = self.connection.execute(query).fetchall()
+        if field:
+            return [entry[field] for entry in result]
+        return [dict(row) for row in result]
+
+    def _query_mongodb_data(self, table_name, field=None):
+        collection = self.connection[table_name]
+        result = list(collection.find())
+        if field:
+            return [entry[field] for entry in result]
+        return result
