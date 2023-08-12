@@ -1,4 +1,25 @@
-import openai
+import os
+import json
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+from langchain.chains import LLMChain
+from langchain.schema import BaseOutputParser
+
+
+class CommaSeparatedListOutputParser(BaseOutputParser):
+    """Parse the output of an LLM call to a comma-separated list."""
+
+    def parse(self, text: str):
+        """Parse the output of an LLM call."""
+        return text.strip().split(", ")
+
+
+def convert_to_string(data_dict):
+    return json.dumps(data_dict)
 
 
 class LanguageModelRequest:
@@ -11,20 +32,30 @@ class LanguageModelRequest:
     def __init__(self):
         # Assuming you've set OPENAI_API_KEY in your .env file
         # This line should be uncommented and set up in a real-world scenario
-        # openai.api_key = os.getenv('OPENAI_API_KEY')
-        pass
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.chat_model = ChatOpenAI(openai_api_key=openai_api_key, temperature=0)
+        self.system_prompt = os.getenv('SYSTEM_PROMPT', "You are an AI who give information from given data")
 
-    def ask_llm(self, question, data):
+    def ask_llm(self, question, data_dict):
         """ 
-        Send a question with data to GPT-3 and get the response.
-        
-        For this mock implementation, we're just returning a simulated response. 
-        In a real-world scenario, this method should make an actual request to GPT-3.
-        """
-        # Simulated behavior for demonstration
-        return f"Response from GPT-3 for question: {question} with data: {data}"
+        Send a question with data to llm and get the response.
 
-        # Real-world request to GPT-3 (requires OpenAI API key and setup)
-        # Uncomment and use this in a real-world scenario
-        # response = openai.Completion.create(engine="davinci", prompt=f"{question} {data}", max_tokens=150)
-        # return response.choices[0].text.strip()
+        """
+        data = convert_to_string(data_dict)
+
+        template = self.system_prompt + "\ndata: {data} "
+        system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+        human_template = "{questions}"
+        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
+        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+
+        chat_prompt.format_messages(data=data, questions=question)
+
+        chain = LLMChain(
+            llm=self.chat_model,
+            prompt=chat_prompt,
+            output_parser=CommaSeparatedListOutputParser()
+        )
+        response = chain.run(data=data, questions=question)
+        return response
