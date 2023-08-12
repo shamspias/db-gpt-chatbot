@@ -4,6 +4,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.egg-info/
+.env
 
 # Virtual environment
 venv/
