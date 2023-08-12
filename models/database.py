@@ -1,7 +1,10 @@
-
 import os
 
+
 class DynamicDatabase:
+    """
+    Class to connect over multiple Database
+    """
     _instance = None  # Singleton instance
 
     def __new__(cls):
@@ -95,12 +98,12 @@ class DynamicDatabase:
 
     def get_tables(self):
         return list(self.data.keys())
-    
+
     def get_fields(self, table_name):
         if table_name in self.data:
             return list(self.data[table_name][0].keys())
         return []
-    
+
     def query(self, table_name, field=None):
         if table_name in self.data:
             if field:
