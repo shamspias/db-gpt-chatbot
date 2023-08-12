@@ -6,3 +6,4 @@ psycopg2
 # cx_oracle
 pymongo
 python-dotenv
+openai
