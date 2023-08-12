@@ -59,3 +59,5 @@ class LanguageModelRequest:
         )
         response = chain.run(data=data, questions=question)
         return response
+
+    # todo make a llm call to get the table names and fields names
