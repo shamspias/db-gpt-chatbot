@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from models.database import DynamicDatabase
 from models.nlp_processor import NLPQueryProcessor
+from models.llm_helpers import LanguageModelRequest
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -9,6 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 db = DynamicDatabase()
 nlp_processor = NLPQueryProcessor(db)
+language_model_processor = LanguageModelRequest()
 
 
 @app.route("/ask", methods=["POST"])
