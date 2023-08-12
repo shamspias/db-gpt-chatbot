@@ -23,7 +23,8 @@ def ask():
     # If a table is detected in the question
     if table_name:
         data = db.query(table_name, field)
-        return jsonify({"response": data})
+        response = language_model_processor.ask_llm(question, data)
+        return jsonify({"response": response})
 
     # Otherwise, return a generic response
     return jsonify({"response": f"Processed question: {question}"})
