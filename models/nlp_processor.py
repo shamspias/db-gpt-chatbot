@@ -2,6 +2,7 @@ class NLPQueryProcessor:
     def __init__(self, database):
         self.database = database
 
+    # todo add the llm way to detected tables and fileds
     def understand_query(self, query):
         tables = self.database.get_tables()
         target_table = None
