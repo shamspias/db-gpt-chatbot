@@ -1,4 +1,3 @@
-
 class EnhancedChatbot:
     def __init__(self, database, nlp_processor):
         self.database = database
