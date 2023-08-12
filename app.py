@@ -16,6 +16,9 @@ language_model_processor = LanguageModelRequest()
 @app.route("/ask", methods=["POST"])
 def ask():
     question = request.json.get("question")
+    use_mock_data = request.json.get("use_mock_data", False)
+
+    db.set_mock_data(use_mock_data)
 
     # Process the question using NLPQueryProcessor to detect table and field
     table_name, field = nlp_processor.understand_query(question)
