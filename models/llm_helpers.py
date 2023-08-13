@@ -115,7 +115,7 @@ class LanguageModelRequest:
         )
 
         response = chain.run(tables=tables, questions=query)
-        return response[0]
+        return response
 
     def get_column_based_on_query(self, columns, query):
         template = ("Get the column names for sql query based on given columns and question only write column names "
