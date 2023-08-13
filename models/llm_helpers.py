@@ -1,10 +1,5 @@
 import os
-import json
-
-from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
-from langchain.retrievers.self_query.base import SelfQueryRetriever
-from langchain.vectorstores import FAISS
 
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -61,15 +56,8 @@ class LanguageModelRequest:
 
         """
         docs = convert_to_documents(data_list)
-        # retriever = FAISS.from_documents(docs, self.embeddings).as_retriever()
 
-        # compression_retriever = ContextualCompressionRetriever(base_compressor=self.compressor,
-        #                                                        base_retriever=retriever)
-        #
-        # data = compression_retriever.get_relevant_documents(question)
-        # data = retriever.get_relevant_documents(question)
         data = docs
-        print(data)
         template = self.system_prompt + "\ndata: {data} "
         system_message_prompt = SystemMessagePromptTemplate.from_template(template)
         human_template = "{questions}"
