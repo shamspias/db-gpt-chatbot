@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # <-- Add this import
 from models.database import DynamicDatabase
 from models.nlp_processor import NLPQueryProcessor
 from models.llm_helpers import LanguageModelRequest
@@ -8,6 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+
+# Enable CORS for all routes and origins by default
+CORS(app)  # <-- Add this line
+
 db = DynamicDatabase()
 language_model_processor = LanguageModelRequest()
 nlp_processor = NLPQueryProcessor(db, language_model_processor)
