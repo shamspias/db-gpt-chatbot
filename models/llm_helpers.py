@@ -90,8 +90,8 @@ class LanguageModelRequest:
 
     def generate_query_by_llm(self, tables, columns, query):
         template = self.system_prompt_query + (
-            "\ntables: {tables} column: {columns}\n\nonly write  query no other extra text and don't forget to use "
-            "SELECT *")
+            "\ntables: {tables} column: {columns}\n\nonly write query no other extra text can check multiple "
+            "fields for conditions but use 'or' never use 'and' if not mandatory and don't forget to use SELECT *")
         system_message_prompt = SystemMessagePromptTemplate.from_template(template)
         human_template = "{questions}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
