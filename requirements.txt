@@ -9,4 +9,4 @@ python-dotenv
 openai
 langchain
 tiktoken
-faiss-cpu
+flask-cors
