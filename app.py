@@ -9,8 +9,8 @@ load_dotenv()
 
 app = Flask(__name__)
 db = DynamicDatabase()
-nlp_processor = NLPQueryProcessor(db)
 language_model_processor = LanguageModelRequest()
+nlp_processor = NLPQueryProcessor(db, language_model_processor)
 
 
 @app.route("/ask", methods=["POST"])
@@ -21,11 +21,11 @@ def ask():
     db.set_mock_data(use_mock_data)
 
     # Process the question using NLPQueryProcessor to detect table and field
-    table_name, field = nlp_processor.understand_query(question)
+    table_name, field, target_query = nlp_processor.understand_query(question)
 
     # If a table is detected in the question
     if table_name:
-        data = db.query(table_name, field)
+        data = db.query(table_name, field, target_query)
         response = language_model_processor.ask_llm(question, data)
         return jsonify({"response": response})
 
