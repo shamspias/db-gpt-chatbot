@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, text
 
 
 class DynamicDatabase:
@@ -152,11 +152,11 @@ class DynamicDatabase:
         except Exception as e:
             raise ValueError(f"Error fetching fields for table {table_name}: {str(e)}")
 
-    def query(self, table_name, field=None):
+    def query(self, table_name, field=None, target_query=None):
         try:
             if self.use_mock_data:
                 return self._query_mock_data(table_name, field)
-            return self._query_real_data(table_name, field)
+            return self._query_real_data(table_name, field, target_query)
         except Exception as e:
             raise ValueError(f"Error querying data for table {table_name}: {str(e)}")
 
@@ -167,42 +167,52 @@ class DynamicDatabase:
             return self.data[table_name]
         return []
 
-    def _query_real_data(self, table_name, field=None):
+    def _query_real_data(self, table_name, field=None, target_query=None):
         if not self.connection:
             self.connect()
         if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
-            return self._query_sql_data(table_name, field)
+            return self._query_sql_data(table_name, field, target_query)
         elif self.db_type == "mongodb":
             return self._query_mongodb_data(table_name, field)
         return []
 
-    def _query_sql_data(self, table_name, field=None):
+    def _query_sql_data(self, table_name=None, field=None, targeted_query=None):
         metadata = MetaData()
-        metadata.reflect(only=[table_name], bind=self.engine)
+        print(targeted_query)
 
-        table = metadata.tables[table_name]
+        if targeted_query:
+            # Use the connection object for execution
 
-        if field:
-            # Only select the specified field
-            query = table.select().with_only_columns([table.c[field]])
+            with self.engine.connect() as connection:
+                result_proxy = connection.execute(text(targeted_query))
+                columns = result_proxy.keys()  # get all the columns names from the result proxy
+                result = result_proxy.fetchall()
+                print(result)
         else:
-            # Select all columns
-            query = table.select()
+            metadata.reflect(only=[table_name], bind=self.engine)
+            table = metadata.tables[table_name]
 
-        columns = table.columns.keys()  # get all the columns names
+            if field:
+                # Only select the specified field
+                query = table.select().with_only_columns([table.c[field]])
+                columns = field
+            else:
+                # Select all columns
+                query = table.select()
+                columns = table.columns.keys()  # get all the columns names
 
-        # Use the connection object for execution
-        with self.engine.connect() as connection:
-            result = connection.execute(query).fetchall()
+            # Use the connection object for execution
+            with self.engine.connect() as connection:
+                result = connection.execute(query).fetchall()
 
-            # Explicitly convert each row to a dictionary
-            rows = []
-            for row in result:
-
-                row_data = {}
-                for column, value in zip(columns, row):
-                    row_data[column] = value
-                rows.append(row_data)
+        # Explicitly convert each row to a dictionary
+        print(result)
+        rows = []
+        for row in result:
+            row_data = {}
+            for column, value in zip(columns, row):
+                row_data[column] = value
+            rows.append(row_data)
 
         return rows
 
