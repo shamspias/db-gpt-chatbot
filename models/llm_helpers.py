@@ -111,7 +111,7 @@ class LanguageModelRequest:
 
     def get_table_based_on_query(self, tables, query):
         template = ("Get the table names for sql query based on given table and question only write table names so it "
-                    "can use for query database\ntables: {tables}")
+                    "can use for query database,\ntables: {tables}\n\nOnly response table name")
         system_message_prompt = SystemMessagePromptTemplate.from_template(template)
         human_template = "{questions}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
