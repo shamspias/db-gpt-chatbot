@@ -8,3 +8,5 @@ pymongo
 python-dotenv
 openai
 langchain
+tiktoken
+faiss-cpu
