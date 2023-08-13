@@ -1,4 +1,5 @@
 import os
+from sqlalchemy import MetaData, Table
 
 
 class DynamicDatabase:
@@ -138,7 +139,8 @@ class DynamicDatabase:
 
             if self.db_type in ["mysql", "postgresql", "oracle", "sqlite"]:
                 # Use SQLAlchemy introspection to get column names
-                return [column.name for column in sqlalchemy.inspect(self.engine).get_columns(table_name)]
+                columns = sqlalchemy.inspect(self.engine).get_columns(table_name)
+                return [column['name'] for column in columns]
 
             elif self.db_type == "mongodb":
                 # MongoDB doesn't have "fields" like SQL, but it has document keys.
@@ -175,11 +177,34 @@ class DynamicDatabase:
         return []
 
     def _query_sql_data(self, table_name, field=None):
-        query = f"SELECT * FROM {table_name}"
-        result = self.connection.execute(query).fetchall()
+        metadata = MetaData()
+        metadata.reflect(only=[table_name], bind=self.engine)
+
+        table = metadata.tables[table_name]
+
         if field:
-            return [entry[field] for entry in result]
-        return [dict(row) for row in result]
+            # Only select the specified field
+            query = table.select().with_only_columns([table.c[field]])
+        else:
+            # Select all columns
+            query = table.select()
+
+        columns = table.columns.keys()  # get all the columns names
+
+        # Use the connection object for execution
+        with self.engine.connect() as connection:
+            result = connection.execute(query).fetchall()
+
+            # Explicitly convert each row to a dictionary
+            rows = []
+            for row in result:
+
+                row_data = {}
+                for column, value in zip(columns, row):
+                    row_data[column] = value
+                rows.append(row_data)
+
+        return rows
 
     def _query_mongodb_data(self, table_name, field=None):
         collection = self.connection[table_name]
